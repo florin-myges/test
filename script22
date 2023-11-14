@@ -1,0 +1,82 @@
+import paramiko
+
+def connect_to_router(hostname, port, username, password):
+    ssh = paramiko.SSHClient()
+    ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+
+    try:
+        ssh.connect(hostname, port, username, password)
+        return ssh
+
+    except Exception as e:
+        print(f"Erreur de connexion: {e}")
+        return None
+
+def execute_command(ssh, command):
+    try:
+        stdin, stdout, stderr = ssh.exec_command(command)
+        output = stdout.read().decode()
+        error = stderr.read().decode()
+
+        print(f"Commande: {command.strip()}")
+        if output:
+            print(f"Sortie:\n{output}")
+        if error:
+            print(f"Erreur:\n{error}")
+
+    except Exception as e:
+        print(f"Erreur lors de l'exécution de la commande: {e}")
+
+def apply_acl_from_file(ssh, acl_file):
+    try:
+        with open(acl_file, 'r') as file:
+            acl_commands = file.readlines()
+
+        for command in acl_commands:
+            execute_command(ssh, command)
+
+    except Exception as e:
+        print(f"Erreur lors de l'application des ACL: {e}")
+
+def apply_telnet_acl(ssh):
+    acl_file = 'telnet_acl.txt'
+    apply_acl_from_file(ssh, acl_file)
+
+def apply_telnet_deny_acl(ssh):
+    acl_file = 'telnet_deny_acl.txt'
+    apply_acl_from_file(ssh, acl_file)
+
+def apply_http_https_acl(ssh):
+    acl_file = 'http_https_acl.txt'
+    apply_acl_from_file(ssh, acl_file)
+
+# Informations de connexion SSH
+hostname = 'adresse_ip_du_routeur'
+port = 22
+username = 'votre_nom_d_utilisateur'
+password = 'votre_mot_de_passe'
+
+# Connexion au routeur
+ssh = connect_to_router(hostname, port, username, password)
+
+if ssh:
+    # Menu ACL
+    print("Menu ACL:")
+    print("1. Autoriser Telnet")
+    print("2. Refuser Telnet")
+    print("3. Autoriser HTTP et HTTPS")
+
+    choice = input("Choisissez une option (1/2/3): ")
+
+    # Appliquer ACL en fonction du choix
+    if choice == '1':
+        apply_telnet_acl(ssh)
+    elif choice == '2':
+        apply_telnet_deny_acl(ssh)
+    elif choice == '3':
+        apply_http_https_acl(ssh)
+    else:
+        print("Option invalide. Aucune ACL appliquée.")
+
+    # Fermeture de la connexion SSH
+    ssh.close()
